@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.SqlClient;
 
+// Represents a non-monthly (periodic) expense like car insurance or annual tax
 class PeriodicExpense
 {
     public string Name { get; set; }
@@ -10,6 +11,7 @@ class PeriodicExpense
     public double MonthlyEquivalent => Amount / EveryXMonths;
 }
 
+// Represents a financial goal (e.g., buy a laptop, go on vacation)
 class Goal
 {
     public string Name { get; set; }
@@ -63,10 +65,11 @@ class Program
             if (!userExists)
             {
                 Console.WriteLine("No user found. Let's create a new one.");
-                Console.Write("Enter your monthly salary: $");
+        Console.Write("Enter your monthly salary: $");
                 salary = decimal.Parse(Console.ReadLine());
 
-                Console.Write("Enter your total monthly expenses: $");
+        // --- Step 2: Get Fixed Monthly Expenses (e.g., rent, groceries) ---
+        Console.Write("Enter your total monthly expenses: $");
                 expenses = decimal.Parse(Console.ReadLine());
 
                 string insertQuery = @"
