@@ -22,6 +22,8 @@ class Program
 
         decimal salary = 0;
         decimal expenses = 0;
+        decimal balance = salary - expenses;
+
         bool userExists = false;
 
         using (SqlConnection conn = new SqlConnection(connectionString))
@@ -66,6 +68,8 @@ class Program
                     insertCmd.Parameters.AddWithValue("@Salary", salary);
                     insertCmd.Parameters.AddWithValue("@Expenses", expenses);
                     insertCmd.ExecuteNonQuery();
+                    insertCmd.Parameters.AddWithValue("@Balance", balance);
+
                     Console.WriteLine("✅ New user saved to database.");
                 }
             }
@@ -147,7 +151,112 @@ class Program
 
             } while (addAnotherGoal == "y");
 
+            string choice;
+            do
+            {
+                Console.WriteLine("\n--- Services ---");
+                Console.WriteLine("1. Transfer money to another user");
+                Console.WriteLine("2. Delete my account");
+                Console.WriteLine("3. Exit");
+                Console.Write("Enter your choice: ");
+                choice = Console.ReadLine();
 
+                if (choice == "1")
+                {
+                    // Transfer Service
+                    Console.Write("Enter the username of the recipient: ");
+                    string recipientUsername = Console.ReadLine();
+
+                    Console.Write("Enter amount to transfer: $");
+                    decimal transferAmount = decimal.Parse(Console.ReadLine());
+
+                    if (transferAmount <= 0)
+                    {
+                        Console.WriteLine("❌ Invalid transfer amount.");
+                        continue;
+                    }
+
+                    // Get sender balance
+                    string getSenderBalanceQuery = "SELECT Balance FROM Users WHERE Username = @Username";
+                    decimal senderBalance = 0;
+                    using (SqlCommand getBalCmd = new SqlCommand(getSenderBalanceQuery, conn))
+                    {
+                        getBalCmd.Parameters.AddWithValue("@Username", username);
+                        senderBalance = (decimal)getBalCmd.ExecuteScalar();
+                    }
+
+                    if (senderBalance < transferAmount)
+                    {
+                        Console.WriteLine("❌ You don't have enough balance to transfer.");
+                        continue;
+                    }
+
+                    // Check if recipient exists
+                    string getRecipientQuery = "SELECT Balance FROM Users WHERE Username = @Recipient";
+                    object recipientBalanceObj;
+                    using (SqlCommand checkCmd = new SqlCommand(getRecipientQuery, conn))
+                    {
+                        checkCmd.Parameters.AddWithValue("@Recipient", recipientUsername);
+                        recipientBalanceObj = checkCmd.ExecuteScalar();
+                    }
+
+                    if (recipientBalanceObj == null)
+                    {
+                        Console.WriteLine("❌ Recipient user does not exist.");
+                        continue;
+                    }
+
+                    // Perform the transfer
+                    decimal recipientBalance = (decimal)recipientBalanceObj;
+
+                    string updateSender = "UPDATE Users SET Balance = Balance - @Amount WHERE Username = @Username";
+                    using (SqlCommand cmd = new SqlCommand(updateSender, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@Amount", transferAmount);
+                        cmd.Parameters.AddWithValue("@Username", username);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    string updateRecipient = "UPDATE Users SET Balance = Balance + @Amount WHERE Username = @Recipient";
+                    using (SqlCommand cmd = new SqlCommand(updateRecipient, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@Amount", transferAmount);
+                        cmd.Parameters.AddWithValue("@Recipient", recipientUsername);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    Console.WriteLine($"✅ Transferred ${transferAmount:F2} to {recipientUsername}.");
+                }
+                else if (choice == "2")
+                {
+                    // Delete account
+                    Console.Write("Are you sure you want to delete your account? (y/n): ");
+                    string confirm = Console.ReadLine().ToLower();
+
+                    if (confirm == "y")
+                    {
+                        // Optional: delete user goals too
+                        string deleteGoals = "DELETE FROM Goals WHERE UserId = (SELECT Id FROM Users WHERE Username = @Username)";
+                        using (SqlCommand cmd = new SqlCommand(deleteGoals, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@Username", username);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        // Delete user
+                        string deleteUser = "DELETE FROM Users WHERE Username = @Username";
+                        using (SqlCommand cmd = new SqlCommand(deleteUser, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@Username", username);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        Console.WriteLine("✅ Your account has been deleted.");
+                        break; // Exit the menu
+                    }
+                }
+
+            } while (choice != "3");
             // === Periodic Expenses (you already had this part) ===
             List<PeriodicExpense> periodicExpenses = new List<PeriodicExpense>();
             Console.WriteLine("\n--- Periodic Expenses ---");
@@ -179,6 +288,7 @@ class Program
 
             Console.WriteLine("✅ Periodic expenses recorded (not saved to DB yet).");
         }
+        
     }
 }
 
