@@ -5,4 +5,3 @@
     public int EveryXMonths { get; set; }
     public double MonthlyEquivalent => Amount / EveryXMonths;
 }
-
