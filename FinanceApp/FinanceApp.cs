@@ -2,6 +2,8 @@
 using PersonalPortofolioFinanceApp.Classes;
 using System;
 using System.Data.SqlClient;
+using PersonalPortfolioFinanceApp.Helpers;  
+
 
 namespace PersonalPortfolioFinanceApp
 {
@@ -45,7 +47,8 @@ namespace PersonalPortfolioFinanceApp
 
         private string PromptUsername()
         {
-            Console.Write("Enter your username: ");
+            string username = ConsoleHelper.Prompt("Enter your username: ");
+            //Console.Write("Enter your username: ");
             return Console.ReadLine();
         }
     }

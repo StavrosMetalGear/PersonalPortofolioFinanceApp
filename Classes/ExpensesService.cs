@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using PersonalPortofolioFinanceApp.Classes;
+using PersonalPortfolioFinanceApp.Helpers;
 
 namespace PersonalPortfolioFinanceApp.Services
 {
@@ -9,30 +10,30 @@ namespace PersonalPortfolioFinanceApp.Services
         public void HandlePeriodicExpenses()
         {
             List<PeriodicExpense> expenses = new List<PeriodicExpense>();
-            Console.WriteLine("\n--- Periodic Expenses ---");
+
+            ConsoleHelper.PrintHeader("Periodic Expenses");
             string addMore;
 
             do
             {
-                Console.Write("Enter expense name (or press Enter to skip): ");
-                string name = Console.ReadLine();
+                string name = ConsoleHelper.Prompt("Enter expense name (or press Enter to skip): ");
                 if (string.IsNullOrWhiteSpace(name)) break;
 
-                Console.Write($"Enter the total amount for {name}: $");
-                double amount = double.Parse(Console.ReadLine());
+                double amount = double.Parse(ConsoleHelper.Prompt($"Enter the total amount for {name}: $"));
+                int months = int.Parse(ConsoleHelper.Prompt("Occurs every how many months?: "));
 
-                Console.Write("Occurs every how many months?: ");
-                int months = int.Parse(Console.ReadLine());
+                expenses.Add(new PeriodicExpense
+                {
+                    Name = name,
+                    Amount = amount,
+                    EveryXMonths = months
+                });
 
-                expenses.Add(new PeriodicExpense { Name = name, Amount = amount, EveryXMonths = months });
-
-                Console.Write("Add another? (y/n): ");
-                addMore = Console.ReadLine().ToLower();
+                addMore = ConsoleHelper.Prompt("Add another? (y/n): ").ToLower();
 
             } while (addMore == "y");
 
-            Console.WriteLine("✅ Periodic expenses recorded (not saved to DB).");
+            ConsoleHelper.PrintSuccess("Periodic expenses recorded (not saved to DB).");
         }
     }
 }
-

@@ -1,7 +1,6 @@
-﻿using System.Data.SqlClient;
-
-using System;
+﻿using System;
 using System.Data.SqlClient;
+using PersonalPortfolioFinanceApp.Helpers;
 
 namespace PersonalPortfolioFinanceApp.Services
 {
@@ -12,11 +11,10 @@ namespace PersonalPortfolioFinanceApp.Services
             string addAnotherGoal;
             do
             {
-                Console.WriteLine("\n--- Add a New Financial Goal ---");
-                Console.Write("Enter your savings goal amount: $");
-                decimal goalAmount = decimal.Parse(Console.ReadLine());
-                Console.Write("In how many months do you want to reach this goal?: ");
-                int goalMonths = int.Parse(Console.ReadLine());
+                ConsoleHelper.PrintHeader("Add a New Financial Goal");
+
+                decimal goalAmount = decimal.Parse(ConsoleHelper.Prompt("Enter your savings goal amount: $"));
+                int goalMonths = int.Parse(ConsoleHelper.Prompt("In how many months do you want to reach this goal?: "));
 
                 decimal monthlyGoalSaving = goalAmount / goalMonths;
                 decimal generalMonthlySaving = salary - expenses - monthlyGoalSaving;
@@ -25,26 +23,30 @@ namespace PersonalPortfolioFinanceApp.Services
 
                 if (monthlyGoalSaving + expenses > salary)
                 {
-                    Console.WriteLine("❌ This goal is not feasible.");
+                    ConsoleHelper.PrintError("❌ This goal is not feasible.");
                 }
                 else
                 {
-                    Console.WriteLine("✅ This goal is feasible.");
+                    ConsoleHelper.PrintSuccess("✅ This goal is feasible.");
                     Console.WriteLine($"General savings during goal period: ${generalMonthlySaving:F2}/month");
 
                     decimal totalGeneralSavings = generalMonthlySaving * goalMonths;
                     Console.WriteLine($"Total general savings in {goalMonths} months: ${totalGeneralSavings:F2}");
 
                     int totalMonths = 60;
+                    decimal fiveYearSavings;
+
                     if (goalMonths >= totalMonths)
                     {
-                        Console.WriteLine($"Total general savings in 5 years: ${generalMonthlySaving * totalMonths:F2}");
+                        fiveYearSavings = generalMonthlySaving * totalMonths;
                     }
                     else
                     {
                         decimal afterGoal = (salary - expenses) * (totalMonths - goalMonths);
-                        Console.WriteLine($"Total general savings in 5 years: ${(generalMonthlySaving * goalMonths + afterGoal):F2}");
+                        fiveYearSavings = (generalMonthlySaving * goalMonths) + afterGoal;
                     }
+
+                    Console.WriteLine($"Total general savings in 5 years: ${fiveYearSavings:F2}");
 
                     string insertGoalQuery = "INSERT INTO Goals (UserId, GoalAmount, GoalMonths) VALUES (@UserId, @GoalAmount, @GoalMonths)";
                     using (SqlCommand insertCmd = new SqlCommand(insertGoalQuery, conn))
@@ -53,14 +55,14 @@ namespace PersonalPortfolioFinanceApp.Services
                         insertCmd.Parameters.AddWithValue("@GoalAmount", goalAmount);
                         insertCmd.Parameters.AddWithValue("@GoalMonths", goalMonths);
                         insertCmd.ExecuteNonQuery();
-                        Console.WriteLine("✅ Your goal was saved to the database.");
+                        ConsoleHelper.PrintSuccess("✅ Your goal was saved to the database.");
                     }
                 }
 
-                Console.Write("Do you want to add another goal? (y/n): ");
-                addAnotherGoal = Console.ReadLine().ToLower();
+                addAnotherGoal = ConsoleHelper.Prompt("Do you want to add another goal? (y/n): ").ToLower();
 
             } while (addAnotherGoal == "y");
         }
     }
 }
+
