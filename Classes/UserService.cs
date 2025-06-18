@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PersonalPortfolioFinanceApp.Helpers;
+using System;
 using System.Data.SqlClient;
 
 namespace PersonalPortfolioFinanceApp.Services
@@ -10,6 +11,7 @@ namespace PersonalPortfolioFinanceApp.Services
             decimal salary = 0, expenses = 0;
             int userId = 0;
 
+            // Attempt to find existing user
             string selectQuery = "SELECT Id, MonthlySalary, MonthlyExpenses FROM Users WHERE Username = @Username";
             using (SqlCommand cmd = new SqlCommand(selectQuery, conn))
             {
@@ -21,30 +23,47 @@ namespace PersonalPortfolioFinanceApp.Services
                         userId = reader.GetInt32(0);
                         salary = reader.GetDecimal(1);
                         expenses = reader.GetDecimal(2);
-                        Console.WriteLine($"\nWelcome back, {username}!");
+
+                        ConsoleHelper.PrintSuccess($"\nWelcome back, {username}!");
                         Console.WriteLine($"Your saved salary: ${salary}, expenses: ${expenses}");
                         return (salary, expenses, userId);
                     }
                 }
             }
 
-            Console.WriteLine("No user found. Let's create a new one.");
-            Console.Write("Enter your monthly salary: $");
-            salary = decimal.Parse(Console.ReadLine());
-            Console.Write("Enter your total monthly expenses: $");
-            expenses = decimal.Parse(Console.ReadLine());
+            // If not found, register new user
+            ConsoleHelper.PrintHeader("No user found. Let's create a new one.");
 
-            string insertQuery = "INSERT INTO Users (Username, MonthlySalary, MonthlyExpenses, Balance) OUTPUT INSERTED.Id VALUES (@Username, @Salary, @Expenses, @Balance)";
+            while (true)
+            {
+                if (decimal.TryParse(ConsoleHelper.Prompt("Enter your monthly salary: $"), out salary) && salary >= 0) break;
+                ConsoleHelper.PrintError("Invalid input. Please enter a valid salary.");
+            }
+
+            while (true)
+            {
+                if (decimal.TryParse(ConsoleHelper.Prompt("Enter your total monthly expenses: $"), out expenses) && expenses >= 0) break;
+                ConsoleHelper.PrintError("Invalid input. Please enter valid expenses.");
+            }
+
+            decimal balance = salary - expenses;
+
+            string insertQuery = @"
+                INSERT INTO Users (Username, MonthlySalary, MonthlyExpenses, Balance)
+                OUTPUT INSERTED.Id
+                VALUES (@Username, @Salary, @Expenses, @Balance)";
+
             using (SqlCommand insertCmd = new SqlCommand(insertQuery, conn))
             {
                 insertCmd.Parameters.AddWithValue("@Username", username);
                 insertCmd.Parameters.AddWithValue("@Salary", salary);
                 insertCmd.Parameters.AddWithValue("@Expenses", expenses);
-                insertCmd.Parameters.AddWithValue("@Balance", salary - expenses);
+                insertCmd.Parameters.AddWithValue("@Balance", balance);
+
                 userId = (int)insertCmd.ExecuteScalar();
             }
 
-            Console.WriteLine("✅ New user saved to database.");
+            ConsoleHelper.PrintSuccess("✅ New user saved to the database.");
             return (salary, expenses, userId);
         }
 
@@ -64,7 +83,7 @@ namespace PersonalPortfolioFinanceApp.Services
                 cmd.ExecuteNonQuery();
             }
 
-            Console.WriteLine("✅ Your account has been deleted.");
+            ConsoleHelper.PrintSuccess("✅ Your account has been deleted.");
         }
     }
 }

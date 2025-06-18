@@ -1,4 +1,5 @@
-﻿using PersonalPortfolioFinanceApp.Services;
+﻿using PersonalPortfolioFinanceApp.Helpers;
+using PersonalPortfolioFinanceApp.Services;
 using System;
 using System.Data.SqlClient;
 
@@ -11,49 +12,69 @@ namespace PersonalPortofolioFinanceApp.Classes
             string choice;
             do
             {
-                Console.WriteLine("\n--- Services ---");
+                ConsoleHelper.PrintHeader("--- Services ---");
                 Console.WriteLine("1. Transfer money to another user");
                 Console.WriteLine("2. Delete my account");
                 Console.WriteLine("3. Exit");
-                Console.Write("Enter your choice: ");
-                choice = Console.ReadLine();
 
-                if (choice == "1") TransferMoney(conn, username);
-                else if (choice == "2")
+                choice = ConsoleHelper.Prompt("Enter your choice: ");
+
+                switch (choice)
                 {
-                    Console.Write("Are you sure you want to delete your account? (y/n): ");
-                    if (Console.ReadLine().ToLower() == "y")
-                    {
-                        userService.DeleteUser(conn, username);
+                    case "1":
+                        TransferMoney(conn, username);
                         break;
-                    }
+                    case "2":
+                        string confirm = ConsoleHelper.Prompt("Are you sure you want to delete your account? (y/n): ").ToLower();
+                        if (confirm == "y")
+                        {
+                            userService.DeleteUser(conn, username);
+                            return; // Exit after deletion
+                        }
+                        break;
+                    case "3":
+                        ConsoleHelper.PrintSuccess("Exiting service menu...");
+                        break;
+                    default:
+                        ConsoleHelper.PrintError("Invalid option. Please choose 1, 2, or 3.");
+                        break;
                 }
+
             } while (choice != "3");
         }
 
         private void TransferMoney(SqlConnection conn, string sender)
         {
-            Console.Write("Enter the username of the recipient: ");
-            string recipient = Console.ReadLine();
-            Console.Write("Enter amount to transfer: $");
-            decimal amount = decimal.Parse(Console.ReadLine());
+            string recipient = ConsoleHelper.Prompt("Enter the username of the recipient: ");
+            string inputAmount = ConsoleHelper.Prompt("Enter amount to transfer: $");
 
+            if (!decimal.TryParse(inputAmount, out decimal amount) || amount <= 0)
+            {
+                ConsoleHelper.PrintError("Invalid transfer amount.");
+                return;
+            }
+
+            // Check sender balance
             string getSenderBalanceQuery = "SELECT Balance FROM Users WHERE Username = @Username";
-            decimal senderBalance = 0;
+            decimal senderBalance;
+
             using (SqlCommand cmd = new SqlCommand(getSenderBalanceQuery, conn))
             {
                 cmd.Parameters.AddWithValue("@Username", sender);
-                senderBalance = (decimal)cmd.ExecuteScalar();
+                object result = cmd.ExecuteScalar();
+                senderBalance = result != null ? (decimal)result : 0;
             }
 
             if (senderBalance < amount)
             {
-                Console.WriteLine("❌ Not enough balance.");
+                ConsoleHelper.PrintError("❌ Not enough balance to complete the transfer.");
                 return;
             }
 
+            // Check recipient
             string getRecipientQuery = "SELECT Balance FROM Users WHERE Username = @Recipient";
             object recipientResult;
+
             using (SqlCommand cmd = new SqlCommand(getRecipientQuery, conn))
             {
                 cmd.Parameters.AddWithValue("@Recipient", recipient);
@@ -62,10 +83,11 @@ namespace PersonalPortofolioFinanceApp.Classes
 
             if (recipientResult == null)
             {
-                Console.WriteLine("❌ Recipient does not exist.");
+                ConsoleHelper.PrintError("❌ Recipient does not exist.");
                 return;
             }
 
+            // Transfer money
             using (SqlCommand updateSender = new SqlCommand("UPDATE Users SET Balance = Balance - @Amount WHERE Username = @Username", conn))
             {
                 updateSender.Parameters.AddWithValue("@Amount", amount);
@@ -80,7 +102,7 @@ namespace PersonalPortofolioFinanceApp.Classes
                 updateRecipient.ExecuteNonQuery();
             }
 
-            Console.WriteLine($"✅ Transferred ${amount:F2} to {recipient}.");
+            ConsoleHelper.PrintSuccess($"✅ Transferred ${amount:F2} to {recipient}.");
         }
     }
 }
