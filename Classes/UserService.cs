@@ -85,5 +85,35 @@ namespace PersonalPortfolioFinanceApp.Services
 
             ConsoleHelper.PrintSuccess("✅ Your account has been deleted.");
         }
+        public void UpdateUserInfo(SqlConnection conn, string username)
+        {
+            Console.WriteLine("\n--- Update Your Financial Info ---");
+
+            Console.Write("Enter your new monthly salary: $");
+            decimal newSalary = decimal.Parse(Console.ReadLine());
+
+            Console.Write("Enter your new monthly expenses: $");
+            decimal newExpenses = decimal.Parse(Console.ReadLine());
+
+            decimal newBalance = newSalary - newExpenses;
+
+            string updateQuery = @"
+        UPDATE Users
+        SET MonthlySalary = @Salary, MonthlyExpenses = @Expenses, Balance = @Balance
+        WHERE Username = @Username";
+
+            using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
+            {
+                cmd.Parameters.AddWithValue("@Username", username);
+                cmd.Parameters.AddWithValue("@Salary", newSalary);
+                cmd.Parameters.AddWithValue("@Expenses", newExpenses);
+                cmd.Parameters.AddWithValue("@Balance", newBalance);
+
+                cmd.ExecuteNonQuery();
+            }
+
+            Console.WriteLine("✅ Your financial information has been updated.");
+        }
     }
+
 }

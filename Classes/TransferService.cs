@@ -15,7 +15,8 @@ namespace PersonalPortofolioFinanceApp.Classes
                 ConsoleHelper.PrintHeader("--- Services ---");
                 Console.WriteLine("1. Transfer money to another user");
                 Console.WriteLine("2. Delete my account");
-                Console.WriteLine("3. Exit");
+                Console.WriteLine("3. Update my salary/expenses");
+                Console.WriteLine("4. Exit");
 
                 choice = ConsoleHelper.Prompt("Enter your choice: ");
 
@@ -33,9 +34,13 @@ namespace PersonalPortofolioFinanceApp.Classes
                         }
                         break;
                     case "3":
+                        userService.UpdateUserInfo(conn, username);
+                        break;
+                    case "4":
                         ConsoleHelper.PrintSuccess("Exiting service menu...");
                         break;
                     default:
+
                         ConsoleHelper.PrintError("Invalid option. Please choose 1, 2, or 3.");
                         break;
                 }
