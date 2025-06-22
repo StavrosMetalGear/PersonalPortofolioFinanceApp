@@ -114,6 +114,19 @@ namespace PersonalPortfolioFinanceApp.Services
 
             Console.WriteLine("✅ Your financial information has been updated.");
         }
+        public void UpdateUser(SqlConnection conn, string username, decimal salary, decimal expenses)
+        {
+            string query = "UPDATE Users SET MonthlySalary = @Salary, MonthlyExpenses = @Expenses, Balance = @Balance WHERE Username = @Username";
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@Username", username);
+                cmd.Parameters.AddWithValue("@Salary", salary);
+                cmd.Parameters.AddWithValue("@Expenses", expenses);
+                cmd.Parameters.AddWithValue("@Balance", salary - expenses);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
     }
 
 }
