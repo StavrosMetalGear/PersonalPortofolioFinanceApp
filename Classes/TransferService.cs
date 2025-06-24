@@ -50,64 +50,75 @@ namespace PersonalPortofolioFinanceApp.Classes
 
         private void TransferMoney(SqlConnection conn, string sender)
         {
-            string recipient = ConsoleHelper.Prompt("Enter the username of the recipient: ");
-            string inputAmount = ConsoleHelper.Prompt("Enter amount to transfer: $");
-
-            if (!decimal.TryParse(inputAmount, out decimal amount) || amount <= 0)
+            try
             {
-                ConsoleHelper.PrintError("Invalid transfer amount.");
-                return;
+                string recipient = ConsoleHelper.Prompt("Enter the username of the recipient: ");
+                string inputAmount = ConsoleHelper.Prompt("Enter amount to transfer: $");
+
+                if (!decimal.TryParse(inputAmount, out decimal amount) || amount <= 0)
+                {
+                    ConsoleHelper.PrintError("Invalid transfer amount.");
+                    return;
+                }
+
+                // Check sender balance
+                string getSenderBalanceQuery = "SELECT Balance FROM Users WHERE Username = @Username";
+                decimal senderBalance;
+
+                using (SqlCommand cmd = new SqlCommand(getSenderBalanceQuery, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Username", sender);
+                    object result = cmd.ExecuteScalar();
+                    senderBalance = result != null ? (decimal)result : 0;
+                }
+
+                if (senderBalance < amount)
+                {
+                    ConsoleHelper.PrintError("❌ Not enough balance to complete the transfer.");
+                    return;
+                }
+
+                // Check recipient
+                string getRecipientQuery = "SELECT Balance FROM Users WHERE Username = @Recipient";
+                object recipientResult;
+
+                using (SqlCommand cmd = new SqlCommand(getRecipientQuery, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Recipient", recipient);
+                    recipientResult = cmd.ExecuteScalar();
+                }
+
+                if (recipientResult == null)
+                {
+                    ConsoleHelper.PrintError("❌ Recipient does not exist.");
+                    return;
+                }
+
+                // Transfer money
+                using (SqlCommand updateSender = new SqlCommand("UPDATE Users SET Balance = Balance - @Amount WHERE Username = @Username", conn))
+                {
+                    updateSender.Parameters.AddWithValue("@Amount", amount);
+                    updateSender.Parameters.AddWithValue("@Username", sender);
+                    updateSender.ExecuteNonQuery();
+                }
+
+                using (SqlCommand updateRecipient = new SqlCommand("UPDATE Users SET Balance = Balance + @Amount WHERE Username = @Recipient", conn))
+                {
+                    updateRecipient.Parameters.AddWithValue("@Amount", amount);
+                    updateRecipient.Parameters.AddWithValue("@Recipient", recipient);
+                    updateRecipient.ExecuteNonQuery();
+                }
+
+                ConsoleHelper.PrintSuccess($"✅ Transferred ${amount:F2} to {recipient}.");
             }
-
-            // Check sender balance
-            string getSenderBalanceQuery = "SELECT Balance FROM Users WHERE Username = @Username";
-            decimal senderBalance;
-
-            using (SqlCommand cmd = new SqlCommand(getSenderBalanceQuery, conn))
+            catch (SqlException ex)
             {
-                cmd.Parameters.AddWithValue("@Username", sender);
-                object result = cmd.ExecuteScalar();
-                senderBalance = result != null ? (decimal)result : 0;
+                ConsoleHelper.PrintError("A database error occurred: " + ex.Message);
             }
-
-            if (senderBalance < amount)
+            catch (Exception ex)
             {
-                ConsoleHelper.PrintError("❌ Not enough balance to complete the transfer.");
-                return;
+                ConsoleHelper.PrintError("An unexpected error occurred: " + ex.Message);
             }
-
-            // Check recipient
-            string getRecipientQuery = "SELECT Balance FROM Users WHERE Username = @Recipient";
-            object recipientResult;
-
-            using (SqlCommand cmd = new SqlCommand(getRecipientQuery, conn))
-            {
-                cmd.Parameters.AddWithValue("@Recipient", recipient);
-                recipientResult = cmd.ExecuteScalar();
-            }
-
-            if (recipientResult == null)
-            {
-                ConsoleHelper.PrintError("❌ Recipient does not exist.");
-                return;
-            }
-
-            // Transfer money
-            using (SqlCommand updateSender = new SqlCommand("UPDATE Users SET Balance = Balance - @Amount WHERE Username = @Username", conn))
-            {
-                updateSender.Parameters.AddWithValue("@Amount", amount);
-                updateSender.Parameters.AddWithValue("@Username", sender);
-                updateSender.ExecuteNonQuery();
-            }
-
-            using (SqlCommand updateRecipient = new SqlCommand("UPDATE Users SET Balance = Balance + @Amount WHERE Username = @Recipient", conn))
-            {
-                updateRecipient.Parameters.AddWithValue("@Amount", amount);
-                updateRecipient.Parameters.AddWithValue("@Recipient", recipient);
-                updateRecipient.ExecuteNonQuery();
-            }
-
-            ConsoleHelper.PrintSuccess($"✅ Transferred ${amount:F2} to {recipient}.");
         }
     }
 }

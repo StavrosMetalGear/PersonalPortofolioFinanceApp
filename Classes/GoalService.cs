@@ -48,14 +48,25 @@ namespace PersonalPortfolioFinanceApp.Services
 
                     Console.WriteLine($"Total general savings in 5 years: ${fiveYearSavings:F2}");
 
-                    string insertGoalQuery = "INSERT INTO Goals (UserId, GoalAmount, GoalMonths) VALUES (@UserId, @GoalAmount, @GoalMonths)";
-                    using (SqlCommand insertCmd = new SqlCommand(insertGoalQuery, conn))
+                    try
                     {
-                        insertCmd.Parameters.AddWithValue("@UserId", userId);
-                        insertCmd.Parameters.AddWithValue("@GoalAmount", goalAmount);
-                        insertCmd.Parameters.AddWithValue("@GoalMonths", goalMonths);
-                        insertCmd.ExecuteNonQuery();
-                        ConsoleHelper.PrintSuccess("✅ Your goal was saved to the database.");
+                        string insertGoalQuery = "INSERT INTO Goals (UserId, GoalAmount, GoalMonths) VALUES (@UserId, @GoalAmount, @GoalMonths)";
+                        using (SqlCommand insertCmd = new SqlCommand(insertGoalQuery, conn))
+                        {
+                            insertCmd.Parameters.AddWithValue("@UserId", userId);
+                            insertCmd.Parameters.AddWithValue("@GoalAmount", goalAmount);
+                            insertCmd.Parameters.AddWithValue("@GoalMonths", goalMonths);
+                            insertCmd.ExecuteNonQuery();
+                            ConsoleHelper.PrintSuccess("✅ Your goal was saved to the database.");
+                        }
+                    }
+                    catch (SqlException ex)
+                    {
+                        ConsoleHelper.PrintError("A database error occurred: " + ex.Message);
+                    }
+                    catch (Exception ex)
+                    {
+                        ConsoleHelper.PrintError("An unexpected error occurred: " + ex.Message);
                     }
                 }
 

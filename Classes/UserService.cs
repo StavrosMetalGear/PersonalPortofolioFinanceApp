@@ -6,7 +6,7 @@ namespace PersonalPortfolioFinanceApp.Services
 {
     public class UserService
     {
-        public (decimal, decimal, int) LoginOrRegisterUser(SqlConnection conn, string username)
+        public (decimal, decimal, int) LoginUser(SqlConnection conn, string username)
         {
             decimal salary = 0, expenses = 0;
             int userId = 0;
@@ -31,7 +31,14 @@ namespace PersonalPortfolioFinanceApp.Services
                 }
             }
 
-            // If not found, register new user
+            return (salary, expenses, userId);
+        }
+
+        public (decimal, decimal, int) RegisterUser(SqlConnection conn, string username)
+        {
+            decimal salary = 0, expenses = 0;
+            int userId = 0;
+
             ConsoleHelper.PrintHeader("No user found. Let's create a new one.");
 
             while (true)
@@ -85,35 +92,52 @@ namespace PersonalPortfolioFinanceApp.Services
 
             ConsoleHelper.PrintSuccess("✅ Your account has been deleted.");
         }
+
         public void UpdateUserInfo(SqlConnection conn, string username)
         {
-            Console.WriteLine("\n--- Update Your Financial Info ---");
+            try
+            {
+                Console.WriteLine("\n--- Update Your Financial Info ---");
 
-            Console.Write("Enter your new monthly salary: $");
-            decimal newSalary = decimal.Parse(Console.ReadLine());
+                Console.Write("Enter your new monthly salary: $");
+                decimal newSalary = decimal.Parse(Console.ReadLine());
 
-            Console.Write("Enter your new monthly expenses: $");
-            decimal newExpenses = decimal.Parse(Console.ReadLine());
+                Console.Write("Enter your new monthly expenses: $");
+                decimal newExpenses = decimal.Parse(Console.ReadLine());
 
-            decimal newBalance = newSalary - newExpenses;
+                decimal newBalance = newSalary - newExpenses;
 
-            string updateQuery = @"
+                string updateQuery = @"
         UPDATE Users
         SET MonthlySalary = @Salary, MonthlyExpenses = @Expenses, Balance = @Balance
         WHERE Username = @Username";
 
-            using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
-            {
-                cmd.Parameters.AddWithValue("@Username", username);
-                cmd.Parameters.AddWithValue("@Salary", newSalary);
-                cmd.Parameters.AddWithValue("@Expenses", newExpenses);
-                cmd.Parameters.AddWithValue("@Balance", newBalance);
+                using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Username", username);
+                    cmd.Parameters.AddWithValue("@Salary", newSalary);
+                    cmd.Parameters.AddWithValue("@Expenses", newExpenses);
+                    cmd.Parameters.AddWithValue("@Balance", newBalance);
 
-                cmd.ExecuteNonQuery();
+                    cmd.ExecuteNonQuery();
+                }
+
+                Console.WriteLine("✅ Your financial information has been updated.");
             }
-
-            Console.WriteLine("✅ Your financial information has been updated.");
+            catch (FormatException ex)
+            {
+                ConsoleHelper.PrintError("Invalid number format: " + ex.Message);
+            }
+            catch (SqlException ex)
+            {
+                ConsoleHelper.PrintError("Database error: " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                ConsoleHelper.PrintError("Unexpected error: " + ex.Message);
+            }
         }
+
         public void UpdateUser(SqlConnection conn, string username, decimal salary, decimal expenses)
         {
             string query = "UPDATE Users SET MonthlySalary = @Salary, MonthlyExpenses = @Expenses, Balance = @Balance WHERE Username = @Username";
@@ -127,6 +151,13 @@ namespace PersonalPortfolioFinanceApp.Services
             }
         }
 
+        public void HandleUserLoginOrRegistration(SqlConnection conn, string username)
+        {
+            var (salary, expenses, userId) = LoginUser(conn, username);
+            if (userId == 0)
+            {
+                (salary, expenses, userId) = RegisterUser(conn, username);
+            }
+        }
     }
-
 }
